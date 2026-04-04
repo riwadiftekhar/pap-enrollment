@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Patient Assistance Program Enrollment</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px;
+      color: #1a202c;
+    }
+
+    header {
+      width: 100%;
+      max-width: 780px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #1e3a5f;
+    }
+    header p {
+      color: #4a5568;
+      margin-top: 4px;
+      font-size: 0.95rem;
+    }
+
+    /* Program selector */
+    #program-selector {
+      width: 100%;
+      max-width: 780px;
+      background: #fff;
+      border-radius: 12px;
+      padding: 40px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+    #program-selector h2 { font-size: 1.2rem; color: #1e3a5f; margin-bottom: 24px; }
+    .program-grid {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .program-card {
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 20px 32px;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      min-width: 160px;
+    }
+    .program-card:hover { border-color: #3182ce; box-shadow: 0 0 0 3px rgba(49,130,206,0.15); }
+    .program-card.selected { border-color: #3182ce; background: #ebf8ff; }
+    .program-card .prog-name { font-weight: 600; font-size: 1rem; color: #1e3a5f; }
+    .program-card .prog-sub { font-size: 0.8rem; color: #718096; margin-top: 4px; }
+    .btn-start {
+      margin-top: 28px;
+      display: inline-block;
+      background: #3182ce;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 36px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-start:hover { background: #2b6cb0; }
+    .btn-start:disabled { background: #a0aec0; cursor: not-allowed; }
+
+    /* Form card */
+    #form-container {
+      width: 100%;
+      max-width: 780px;
+      display: none;
+    }
+
+    /* Step indicator */
+    .step-indicator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      gap: 0;
+    }
+    .step-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+      flex: 1;
+    }
+    .step-item:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      top: 18px;
+      left: 50%;
+      width: 100%;
+      height: 2px;
+      background: #e2e8f0;
+      z-index: 0;
+    }
+    .step-item.done:not(:last-child)::after { background: #3182ce; }
+    .step-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid #e2e8f0;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #a0aec0;
+      position: relative;
+      z-index: 1;
+      transition: all 0.2s;
+    }
+    .step-item.done .step-circle { background: #3182ce; border-color: #3182ce; color: #fff; }
+    .step-item.active .step-circle { border-color: #3182ce; color: #3182ce; font-weight: 800; }
+    .step-label {
+      font-size: 0.72rem;
+      color: #718096;
+      margin-top: 6px;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .step-item.active .step-label { color: #3182ce; font-weight: 600; }
+    .step-item.done .step-label { color: #3182ce; }
+
+    /* Form card */
+    .form-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 36px 40px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    }
+    .form-card h2 {
+      font-size: 1.15rem;
+      color: #1e3a5f;
+      margin-bottom: 24px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid #ebf8ff;
+    }
+
+    /* Field rows */
+    .field-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-width: 160px;
+    }
+    .field-group.narrow { flex: 0 0 80px; min-width: 80px; }
+    .field-group.medium { flex: 0 0 140px; min-width: 140px; }
+    .field-group.full { flex: 1 1 100%; }
+
+    label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #4a5568;
+      margin-bottom: 5px;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    label .req { color: #e53e3e; margin-left: 2px; }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    select,
+    input[type="number"] {
+      border: 1.5px solid #e2e8f0;
+      border-radius: 7px;
+      padding: 9px 12px;
+      font-size: 0.95rem;
+      color: #1a202c;
+      background: #fff;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      width: 100%;
+      outline: none;
+    }
+    input:focus, select:focus {
+      border-color: #3182ce;
+      box-shadow: 0 0 0 3px rgba(49,130,206,0.15);
+    }
+    input.error { border-color: #e53e3e; }
+    .error-msg { font-size: 0.75rem; color: #e53e3e; margin-top: 4px; }
+
+    .phone-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .phone-sep { color: #a0aec0; font-size: 1.1rem; font-weight: 700; padding-bottom: 1px; }
+    .phone-group input { flex: 1; }
+
+    /* Radio / checkbox group */
+    .radio-group, .check-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .radio-label, .check-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.9rem;
+      font-weight: 400;
+      color: #1a202c;
+      text-transform: none;
+      letter-spacing: 0;
+      cursor: pointer;
+    }
+    .radio-label input, .check-label input { width: auto; }
+
+    /* Section separator */
+    .section-sep {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 22px 0;
+    }
+    .sub-heading {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Med block */
+    .med-block {
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    .med-block .sub-heading { margin-bottom: 12px; }
+
+    /* Nav buttons */
+    .form-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 32px;
+      padding-top: 20px;
+      border-top: 1px solid #e2e8f0;
+    }
+    .btn {
+      padding: 11px 28px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    .btn-back { background: #e2e8f0; color: #4a5568; }
+    .btn-back:hover { background: #cbd5e0; }
+    .btn-next { background: #3182ce; color: #fff; }
+    .btn-next:hover { background: #2b6cb0; }
+    .btn-submit { background: #38a169; color: #fff; }
+    .btn-submit:hover { background: #2f855a; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin-right: 8px;
+      vertical-align: middle;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .global-error {
+      background: #fff5f5;
+      border: 1px solid #feb2b2;
+      color: #c53030;
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-top: 16px;
+      font-size: 0.9rem;
+    }
+
+    /* Success screen */
+    #success-screen {
+      display: none;
+      width: 100%;
+      max-width: 780px;
+      background: #fff;
+      border-radius: 12px;
+      padding: 56px 40px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      text-align: center;
+    }
+    .success-icon {
+      font-size: 3.5rem;
+      margin-bottom: 16px;
+    }
+    #success-screen h2 { font-size: 1.4rem; color: #276749; margin-bottom: 10px; }
+    #success-screen p { color: #4a5568; font-size: 0.95rem; margin-bottom: 6px; }
+    #success-screen .email-sent { font-weight: 600; color: #1e3a5f; }
+    .btn-new {
+      margin-top: 28px;
+      background: #3182ce;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 11px 28px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-new:hover { background: #2b6cb0; }
+
+    @media (max-width: 600px) {
+      .form-card { padding: 24px 18px; }
+      .field-row { gap: 10px; }
+      .field-group.narrow { flex: 0 0 64px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Patient Assistance Program Enrollment</h1>
+  <p>Flowood Family Medicine &nbsp;·&nbsp; Complete and submit enrollment forms</p>
+</header>
+
+<!-- Step 0: Program selector -->
+<div id="program-selector">
+  <h2>Select an Enrollment Program</h2>
+  <div class="program-grid">
+    <div class="program-card selected" data-program="sanofi" onclick="selectProgram(this)">
+      <div class="prog-name">Sanofi</div>
+      <div class="prog-sub">Patient Connection®</div>
+    </div>
+    <!-- Future programs can be added here -->
+  </div>
+  <br>
+  <button class="btn-start" id="btn-start" onclick="startForm()">Begin Enrollment &rarr;</button>
+</div>
+
+<!-- Multi-step form -->
+<div id="form-container">
+  <!-- Step Indicator -->
+  <div class="step-indicator" id="step-indicator">
+    <div class="step-item active" data-step="1">
+      <div class="step-circle">1</div>
+      <div class="step-label">Patient Info</div>
+    </div>
+    <div class="step-item" data-step="2">
+      <div class="step-circle">2</div>
+      <div class="step-label">Medication</div>
+    </div>
+    <div class="step-item" data-step="3">
+      <div class="step-circle">3</div>
+      <div class="step-label">Prescriber</div>
+    </div>
+  </div>
+
+  <!-- Step 1: Patient Information -->
+  <div class="form-card" id="step-1">
+    <h2>Section 1 &mdash; Patient Information</h2>
+
+    <div class="field-row">
+      <div class="field-group">
+        <label>First Name <span class="req">*</span></label>
+        <input type="text" id="patient_first_name" placeholder="Jane" />
+        <span class="error-msg" id="err_patient_first_name"></span>
+      </div>
+      <div class="field-group narrow">
+        <label>MI</label>
+        <input type="text" id="patient_middle_initial" maxlength="1" placeholder="A" />
+      </div>
+      <div class="field-group">
+        <label>Last Name <span class="req">*</span></label>
+        <input type="text" id="patient_last_name" placeholder="Doe" />
+        <span class="error-msg" id="err_patient_last_name"></span>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field-group">
+        <label>Social Security Number</label>
+        <input type="password" id="patient_ssn" placeholder="XXX-XX-XXXX" maxlength="11" />
+      </div>
+      <div class="field-group">
+        <label>Date of Birth <span class="req">*</span></label>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <input type="text" id="patient_dob_mm" placeholder="MM" maxlength="2" style="width:56px;flex:none;" />
+          <span class="phone-sep">/</span>
+          <input type="text" id="patient_dob_dd" placeholder="DD" maxlength="2" style="width:56px;flex:none;" />
+          <span class="phone-sep">/</span>
+          <input type="text" id="patient_dob_yyyy" placeholder="YYYY" maxlength="4" style="width:76px;flex:none;" />
+        </div>
+        <span class="error-msg" id="err_dob"></span>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field-group full">
+        <label>Street Address <span class="req">*</span></label>
+        <input type="text" id="patient_address" placeholder="123 Main St" />
+        <span class="error-msg" id="err_patient_address"></span>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field-group">
+        <label>City <span class="req">*</span></label>
+        <input type="text" id="patient_city" placeholder="Jackson" />
+        <span class="error-msg" id="err_patient_city"></span>
+      </div>
+      <div class="field-group narrow" style="flex:0 0 72px;">
+        <label>State <span class="req">*</span></label>
+        <input type="text" id="patient_state" placeholder="MS" maxlength="2" />
+        <span class="error-msg" id="err_patient_state"></span>
+      </div>
+      <div class="field-group medium">
+        <label>Zip <span class="req">*</span></label>
+        <input type="text" id="patient_zip" placeholder="39232" maxlength="10" />
+        <span class="error-msg" id="err_patient_zip"></span>
+      </div>
+      <div class="field-group">
+        <label>Preferred Language</label>
+        <input type="text" id="patient_preferred_language" placeholder="Leave blank if English" />
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field-group">
+        <label>Phone Number <span class="req">*</span></label>
+        <div class="phone-group">
+          <input type="text" id="patient_phone_1" maxlength="3" placeholder="601" style="flex:0 0 56px;" oninput="autoTab(this,'patient_phone_2',3)" />
+          <span class="phone-sep">-</span>
+          <input type="text" id="patient_phone_2" maxlength="3" placeholder="555" style="flex:0 0 56px;" oninput="autoTab(this,'patient_phone_3',3)" />
+          <span class="phone-sep">-</span>
+          <input type="text" id="patient_phone_3" maxlength="4" placeholder="0100" style="flex:0 0 68px;" />
+        </div>
+        <span class="error-msg" id="err_phone"></span>
+      </div>
+      <div class="field-group">
+        <label>Email Address <span class="req">*</span></label>
+        <input type="text" id="patient_email" placeholder="student@clinic.com" />
+        <span class="error-msg" id="err_patient_email"></span>
+      </div>
+    </div>
+
+    <hr class="section-sep" />
+    <div class="sub-heading">Household Information</div>
+
+    <div class="field-row">
+      <div class="field-group full">
+        <label>Household Size</label>
+        <div class="radio-group">
+          <label class="radio-label"><input type="radio" name="household_income" value="1" /> 1</label>
+          <label class="radio-label"><input type="radio" name="household_income" value="2" /> 2</label>
+          <label class="radio-label"><input type="radio" name="household_income" value="3" /> 3</label>
+          <label class="radio-label"><input type="radio" name="household_income" value="4" /> 4</label>
+          <label class="radio-label"><input type="radio" name="household_income" value="5" /> 5</label>
+          <label class="radio-label"><input type="radio" name="household_income" value="Other" /> Other:</label>
+          <input type="text" id="household_other_number" placeholder="# in household" style="width:140px;" />
+        </div>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field-group medium">
+        <label>Annual Household Income</label>
+        <input type="text" id="annual_household_income" placeholder="$0,000" />
+      </div>
+    </div>
+
+    <div class="form-nav">
+      <span></span>
+      <button class="btn btn-next" onclick="goToStep(2)">Next &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Step 2: Medication -->
+  <div class="form-card" id="step-2" style="display:none;">
+    <h2>Section 2 &mdash; Medication Information</h2>
+
+    <div class="med-block">
+      <div class="sub-heading">Medication 1</div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Medication Name</label>
+          <input type="text" id="medication_1_name" placeholder="e.g. Dupixent" />
+        </div>
+        <div class="field-group medium">
+          <label>ICD-10 Code</label>
+          <input type="text" id="medication_1_icd10" placeholder="e.g. L20.9" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Frequency</label>
+          <input type="text" id="medication_1_frequency" placeholder="e.g. Every 2 weeks" />
+        </div>
+        <div class="field-group">
+          <label>Dosage</label>
+          <input type="text" id="medication_1_dosage" placeholder="e.g. 300mg" />
+        </div>
+        <div class="field-group narrow">
+          <label>Qty</label>
+          <input type="text" id="medication_1_qty" placeholder="2" />
+        </div>
+      </div>
+    </div>
+
+    <div class="med-block">
+      <div class="sub-heading">Medication 2 <span style="font-weight:400;color:#718096;">(optional)</span></div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Medication Name</label>
+          <input type="text" id="medication_2_name" placeholder="e.g. Lantus" />
+        </div>
+        <div class="field-group medium">
+          <label>ICD-10 Code</label>
+          <input type="text" id="medication_2_icd10" placeholder="e.g. E11.9" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group">
+          <label>Frequency</label>
+          <input type="text" id="medication_2_frequency" placeholder="e.g. Once daily" />
+        </div>
+        <div class="field-group">
+          <label>Dosage</label>
+          <input type="text" id="medication_2_dosage" placeholder="e.g. 10 units" />
+        </div>
+        <div class="field-group narrow">
+          <label>Qty</label>
+          <input type="text" id="medication_2_qty" placeholder="1" />
+        </div>
+      </div>
+    </div>
+
+    <div class="form-nav">
+      <button class="btn btn-back" onclick="goToStep(1)">&larr; Back</button>
+      <button class="btn btn-next" onclick="goToStep(3)">Next &rarr;</button>
+    </div>
+  </div>
+
+  <!-- Step 3: Prescriber -->
+  <div class="form-card" id="step-3" style="display:none;">
+    <h2>Section 3 &mdash; Prescriber Information</h2>
+
+    <div class="field-row">
+      <div class="field-group">
+        <label>Prescriber Name <span class="req">*</span></label>
+        <input type="text" id="prescriber_name" placeholder="Dr. John Smith" />
+        <span class="error-msg" id="err_prescriber_name"></span>
+      </div>
+      <div class="field-group medium">
+        <label>State Licensed</label>
+        <input type="text" id="prescriber_state" placeholder="MS" maxlength="2" />
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field-group">
+        <label>License #</label>
+        <input type="text" id="prescriber_license" placeholder="License number" />
+      </div>
+      <div class="field-group">
+        <label>NPI #</label>
+        <input type="text" id="prescriber_npi" placeholder="10-digit NPI" maxlength="10" />
+      </div>
+    </div>
+
+    <div class="field-row" style="margin-top:8px;">
+      <div class="field-group full">
+        <label>Send PDF To (Email) <span class="req">*</span></label>
+        <input type="text" id="recipient_email" placeholder="student@clinic.com" />
+        <span class="error-msg" id="err_recipient_email"></span>
+      </div>
+    </div>
+
+    <div id="submit-error" class="global-error" style="display:none;"></div>
+
+    <div class="form-nav">
+      <button class="btn btn-back" onclick="goToStep(2)">&larr; Back</button>
+      <button class="btn btn-submit" id="btn-submit" onclick="submitForm()">
+        Submit &amp; Send PDF
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Success screen -->
+<div id="success-screen">
+  <div class="success-icon">&#10003;</div>
+  <h2>Enrollment Submitted!</h2>
+  <p>The completed Sanofi PAP enrollment form has been sent to:</p>
+  <p class="email-sent" id="success-email"></p>
+  <p style="margin-top:12px;font-size:0.85rem;color:#718096;">
+    Review the PDF, obtain the required patient and prescriber signatures,<br>
+    then fax or mail it to Sanofi Patient Connection.
+  </p>
+  <button class="btn-new" onclick="resetForm()">Start New Enrollment</button>
+</div>
+
+<script>
+  let selectedProgram = 'sanofi';
+  let currentStep = 1;
+
+  function selectProgram(el) {
+    document.querySelectorAll('.program-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedProgram = el.dataset.program;
+  }
+
+  function startForm() {
+    document.getElementById('program-selector').style.display = 'none';
+    document.getElementById('form-container').style.display = 'block';
+    currentStep = 1;
+    updateStepIndicator(1);
+  }
+
+  function updateStepIndicator(step) {
+    document.querySelectorAll('.step-item').forEach(el => {
+      const s = parseInt(el.dataset.step);
+      el.classList.remove('active', 'done');
+      if (s < step) el.classList.add('done');
+      if (s === step) el.classList.add('active');
+    });
+  }
+
+  function showStep(step) {
+    document.getElementById('step-1').style.display = 'none';
+    document.getElementById('step-2').style.display = 'none';
+    document.getElementById('step-3').style.display = 'none';
+    document.getElementById('step-' + step).style.display = 'block';
+    currentStep = step;
+    updateStepIndicator(step);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // Auto-tab phone fields
+  function autoTab(el, nextId, maxLen) {
+    if (el.value.length >= maxLen) {
+      document.getElementById(nextId).focus();
+    }
+  }
+
+  // Validation helpers
+  function clearErrors() {
+    document.querySelectorAll('.error-msg').forEach(e => e.textContent = '');
+    document.querySelectorAll('input.error').forEach(e => e.classList.remove('error'));
+  }
+
+  function setError(fieldId, msg) {
+    const errEl = document.getElementById('err_' + fieldId);
+    const inputEl = document.getElementById(fieldId);
+    if (errEl) errEl.textContent = msg;
+    if (inputEl) inputEl.classList.add('error');
+    return false;
+  }
+
+  function val(id) {
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : '';
+  }
+
+  function validateStep1() {
+    clearErrors();
+    let valid = true;
+    if (!val('patient_first_name')) { setError('patient_first_name', 'Required'); valid = false; }
+    if (!val('patient_last_name'))  { setError('patient_last_name', 'Required'); valid = false; }
+    if (!val('patient_dob_mm') || !val('patient_dob_dd') || !val('patient_dob_yyyy')) {
+      setError('dob', 'Complete date of birth required'); valid = false;
+    }
+    if (!val('patient_address'))  { setError('patient_address', 'Required'); valid = false; }
+    if (!val('patient_city'))     { setError('patient_city', 'Required'); valid = false; }
+    if (!val('patient_state'))    { setError('patient_state', 'Required'); valid = false; }
+    if (!val('patient_zip'))      { setError('patient_zip', 'Required'); valid = false; }
+    if (!val('patient_phone_1') || !val('patient_phone_2') || !val('patient_phone_3')) {
+      setError('phone', 'Complete phone number required'); valid = false;
+    }
+    const email = val('patient_email');
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError('patient_email', 'Valid email required (PDF will be sent here)'); valid = false;
+    }
+    return valid;
+  }
+
+  function validateStep3() {
+    clearErrors();
+    let valid = true;
+    if (!val('prescriber_name')) { setError('prescriber_name', 'Required'); valid = false; }
+    const recip = val('recipient_email');
+    if (!recip || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recip)) {
+      setError('recipient_email', 'Valid email required'); valid = false;
+    }
+    return valid;
+  }
+
+  function goToStep(step) {
+    if (step === 2 && !validateStep1()) return;
+    if (step === 3 && currentStep === 2) { /* no required fields on step 2 */ }
+    showStep(step);
+  }
+
+  function collectFormData() {
+    const household_income = (() => {
+      const r = document.querySelector('input[name="household_income"]:checked');
+      return r ? r.value : '';
+    })();
+
+    return {
+      patient_first_name: val('patient_first_name'),
+      patient_middle_initial: val('patient_middle_initial'),
+      patient_last_name: val('patient_last_name'),
+      patient_ssn: val('patient_ssn'),
+      patient_dob_mm: val('patient_dob_mm'),
+      patient_dob_dd: val('patient_dob_dd'),
+      patient_dob_yyyy: val('patient_dob_yyyy'),
+      patient_address: val('patient_address'),
+      patient_city: val('patient_city'),
+      patient_state: val('patient_state').toUpperCase(),
+      patient_zip: val('patient_zip'),
+      patient_preferred_language: val('patient_preferred_language'),
+      patient_phone_1: val('patient_phone_1'),
+      patient_phone_2: val('patient_phone_2'),
+      patient_phone_3: val('patient_phone_3'),
+      patient_email: val('patient_email'),
+      household_income: household_income,
+      household_other_number: val('household_other_number'),
+      annual_household_income: val('annual_household_income'),
+      medication_1_name: val('medication_1_name'),
+      medication_1_icd10: val('medication_1_icd10'),
+      medication_1_frequency: val('medication_1_frequency'),
+      medication_1_dosage: val('medication_1_dosage'),
+      medication_1_qty: val('medication_1_qty'),
+      medication_2_name: val('medication_2_name'),
+      medication_2_icd10: val('medication_2_icd10'),
+      medication_2_frequency: val('medication_2_frequency'),
+      medication_2_dosage: val('medication_2_dosage'),
+      medication_2_qty: val('medication_2_qty'),
+      prescriber_name: val('prescriber_name'),
+      prescriber_state: val('prescriber_state').toUpperCase(),
+      prescriber_license: val('prescriber_license'),
+      prescriber_npi: val('prescriber_npi'),
+      recipient_email: val('recipient_email'),
+    };
+  }
+
+  async function submitForm() {
+    if (!validateStep3()) return;
+
+    const btn = document.getElementById('btn-submit');
+    const errorDiv = document.getElementById('submit-error');
+    errorDiv.style.display = 'none';
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Sending PDF...';
+
+    const data = collectFormData();
+
+    try {
+      const res = await fetch('/api/enroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+        throw new Error(err.detail || 'Submission failed');
+      }
+
+      // Success
+      document.getElementById('form-container').style.display = 'none';
+      const successScreen = document.getElementById('success-screen');
+      successScreen.style.display = 'block';
+      document.getElementById('success-email').textContent = data.recipient_email;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    } catch (err) {
+      errorDiv.textContent = 'Error: ' + err.message;
+      errorDiv.style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = 'Submit &amp; Send PDF';
+    }
+  }
+
+  function resetForm() {
+    // Reset form fields
+    document.querySelectorAll('input[type="text"], input[type="email"], input[type="password"]')
+      .forEach(el => el.value = '');
+    document.querySelectorAll('input[type="radio"]').forEach(el => el.checked = false);
+    clearErrors();
+
+    document.getElementById('success-screen').style.display = 'none';
+    document.getElementById('program-selector').style.display = 'block';
+  }
+</script>
+</body>
+</html>
