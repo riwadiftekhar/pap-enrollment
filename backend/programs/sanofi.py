@@ -1,36 +1,35 @@
+"""
+Sanofi Patient Connection® — PAP enrollment program.
+
+Exports required by the program registry:
+  DISPLAY_NAME  str   — shown on the program selector card
+  SUBTITLE      str   — shown below the display name
+  fill_pdf      func  — fill_pdf(data: dict) -> bytes
+"""
 from pathlib import Path
-from io import BytesIO
-from pypdf import PdfReader, PdfWriter
+from backend.services.pdf_utils import fill_pdf_form
 
-TEMPLATE_PATH = Path(__file__).parent.parent / "assets" / "sanofi_pap_template.pdf"
+DISPLAY_NAME = "Sanofi"
+SUBTITLE = "Patient Connection®"
+
+_TEMPLATE = Path(__file__).parent.parent / "assets" / "sanofi_pap_template.pdf"
 
 
-def fill_sanofi_pdf(data: dict) -> bytes:
-    reader = PdfReader(str(TEMPLATE_PATH))
-    writer = PdfWriter()
-    writer.clone_reader_document_root(reader)
-
-    fields = _build_field_map(data)
-
-    for page in writer.pages:
-        writer.update_page_form_field_values(page, fields)
-
-    writer.set_need_appearances_writer()
-
-    buf = BytesIO()
-    writer.write(buf)
-    return buf.getvalue()
+def fill_pdf(data: dict) -> bytes:
+    return fill_pdf_form(_TEMPLATE, _build_field_map(data), _build_radio_map(data))
 
 
 def _build_field_map(data: dict) -> dict:
-    """Map camelCase form keys to exact PDF field names."""
-    patient_full_name = f"{data.get('patient_first_name', '')} {data.get('patient_last_name', '')}".strip()
+    """Map form keys to exact Sanofi PDF text field names."""
+    patient_full_name = (
+        f"{data.get('patient_first_name', '')} {data.get('patient_last_name', '')}".strip()
+    )
 
     fields = {
         # Patient Info (Section 1)
         "Patient first name": data.get("patient_first_name", ""),
         "Patient middle initial": data.get("patient_middle_initial", ""),
-        "Patint last name": data.get("patient_last_name", ""),  # typo preserved
+        "Patint last name": data.get("patient_last_name", ""),  # typo in PDF preserved
         "Patient SSN": data.get("patient_ssn", ""),
         "Patient DOB MM": data.get("patient_dob_mm", ""),
         "Patient DOB DD": data.get("patient_dob_dd", ""),
@@ -74,10 +73,25 @@ def _build_field_map(data: dict) -> dict:
         "NPI #": data.get("prescriber_npi", ""),
     }
 
-    # Household income radio — PDF export values: /1 /2 /3 /4 /5 /Other
-    household_income = data.get("household_income", "")
-    if household_income:
-        fields["Household income"] = f"/{household_income}"
-
-    # Remove empty values so we don't overwrite pre-filled fields with blanks
     return {k: v for k, v in fields.items() if v}
+
+
+def _build_radio_map(data: dict) -> dict:
+    """Map radio button groups to their PDF export values."""
+    radio = {}
+
+    # Household size: /1 /2 /3 /4 /5 /Other
+    hi = data.get("household_income", "")
+    if hi:
+        radio["Household income"] = f"/{hi}"
+
+    # Medication formulation: /Vials /Pens /N/a
+    m1 = data.get("medication_1_type", "")
+    if m1:
+        radio["Medication 1"] = f"/{m1}"
+
+    m2 = data.get("medication_2_type", "")
+    if m2:
+        radio["Medication 2"] = f"/{m2}"
+
+    return radio

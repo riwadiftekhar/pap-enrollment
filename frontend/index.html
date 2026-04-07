@@ -354,15 +354,11 @@
 <!-- Step 0: Program selector -->
 <div id="program-selector">
   <h2>Select an Enrollment Program</h2>
-  <div class="program-grid">
-    <div class="program-card selected" data-program="sanofi" onclick="selectProgram(this)">
-      <div class="prog-name">Sanofi</div>
-      <div class="prog-sub">Patient Connection®</div>
-    </div>
-    <!-- Future programs can be added here -->
+  <div class="program-grid" id="program-grid">
+    <p style="color:#718096;font-size:0.9rem;">Loading programs...</p>
   </div>
   <br>
-  <button class="btn-start" id="btn-start" onclick="startForm()">Begin Enrollment &rarr;</button>
+  <button class="btn-start" id="btn-start" onclick="startForm()" disabled>Begin Enrollment &rarr;</button>
 </div>
 
 <!-- Multi-step form -->
@@ -385,7 +381,14 @@
 
   <!-- Step 1: Patient Information -->
   <div class="form-card" id="step-1">
-    <h2>Section 1 &mdash; Patient Information</h2>
+    <h2>Section 1 &mdash; Patient Information
+      <button type="button" onclick="fillSampleData()"
+        style="float:right;font-size:0.75rem;font-weight:500;background:#ebf8ff;
+               color:#3182ce;border:1px solid #bee3f8;border-radius:6px;
+               padding:4px 10px;cursor:pointer;">
+        Fill with sample data
+      </button>
+    </h2>
 
     <div class="field-row">
       <div class="field-group">
@@ -486,6 +489,7 @@
           <label class="radio-label"><input type="radio" name="household_income" value="Other" /> Other:</label>
           <input type="text" id="household_other_number" placeholder="# in household" style="width:140px;" />
         </div>
+        <span class="error-msg" id="err_household_income"></span>
       </div>
     </div>
 
@@ -520,8 +524,8 @@
       </div>
       <div class="field-row">
         <div class="field-group">
-          <label>Frequency</label>
-          <input type="text" id="medication_1_frequency" placeholder="e.g. Every 2 weeks" />
+          <label>Frequency and Directions</label>
+          <input type="text" id="medication_1_frequency" placeholder="e.g. Inject subcutaneously once daily" />
         </div>
         <div class="field-group">
           <label>Dosage</label>
@@ -530,6 +534,17 @@
         <div class="field-group narrow">
           <label>Qty</label>
           <input type="text" id="medication_1_qty" placeholder="2" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group full">
+          <label>Formulation</label>
+          <div class="radio-group">
+            <label class="radio-label"><input type="radio" name="medication_1_type" value="Vials" /> Vials</label>
+            <label class="radio-label"><input type="radio" name="medication_1_type" value="Pens" /> Pens</label>
+            <label class="radio-label"><input type="radio" name="medication_1_type" value="N/a" /> N/A</label>
+          </div>
+          <span class="error-msg" id="err_medication_1_type"></span>
         </div>
       </div>
     </div>
@@ -548,8 +563,8 @@
       </div>
       <div class="field-row">
         <div class="field-group">
-          <label>Frequency</label>
-          <input type="text" id="medication_2_frequency" placeholder="e.g. Once daily" />
+          <label>Frequency and Directions</label>
+          <input type="text" id="medication_2_frequency" placeholder="e.g. Inject subcutaneously once daily" />
         </div>
         <div class="field-group">
           <label>Dosage</label>
@@ -558,6 +573,16 @@
         <div class="field-group narrow">
           <label>Qty</label>
           <input type="text" id="medication_2_qty" placeholder="1" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field-group full">
+          <label>Formulation</label>
+          <div class="radio-group">
+            <label class="radio-label"><input type="radio" name="medication_2_type" value="Vials" /> Vials</label>
+            <label class="radio-label"><input type="radio" name="medication_2_type" value="Pens" /> Pens</label>
+            <label class="radio-label"><input type="radio" name="medication_2_type" value="N/a" /> N/A</label>
+          </div>
         </div>
       </div>
     </div>
@@ -628,8 +653,33 @@
 </div>
 
 <script>
-  let selectedProgram = 'sanofi';
+  let selectedProgram = null;
   let currentStep = 1;
+
+  // Load programs from the API and build the selector cards
+  async function loadPrograms() {
+    try {
+      const res = await fetch('/api/programs');
+      const programs = await res.json();
+      const grid = document.getElementById('program-grid');
+      grid.innerHTML = '';
+      programs.forEach((p, i) => {
+        const card = document.createElement('div');
+        card.className = 'program-card' + (i === 0 ? ' selected' : '');
+        card.dataset.program = p.id;
+        card.innerHTML = `<div class="prog-name">${p.name}</div><div class="prog-sub">${p.subtitle}</div>`;
+        card.onclick = () => selectProgram(card);
+        grid.appendChild(card);
+        if (i === 0) { selectedProgram = p.id; }
+      });
+      if (programs.length > 0) {
+        document.getElementById('btn-start').disabled = false;
+      }
+    } catch (e) {
+      document.getElementById('program-grid').innerHTML =
+        '<p style="color:#e53e3e;">Could not load programs. Is the server running?</p>';
+    }
+  }
 
   function selectProgram(el) {
     document.querySelectorAll('.program-card').forEach(c => c.classList.remove('selected'));
@@ -643,6 +693,8 @@
     currentStep = 1;
     updateStepIndicator(1);
   }
+
+  loadPrograms();
 
   function updateStepIndicator(step) {
     document.querySelectorAll('.step-item').forEach(el => {
@@ -708,6 +760,22 @@
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setError('patient_email', 'Valid email required (PDF will be sent here)'); valid = false;
     }
+    if (!document.querySelector('input[name="household_income"]:checked')) {
+      const errEl = document.getElementById('err_household_income');
+      if (errEl) errEl.textContent = 'Required';
+      valid = false;
+    }
+    return valid;
+  }
+
+  function validateStep2() {
+    clearErrors();
+    let valid = true;
+    if (val('medication_1_name') && !document.querySelector('input[name="medication_1_type"]:checked')) {
+      const errEl = document.getElementById('err_medication_1_type');
+      if (errEl) errEl.textContent = 'Select a formulation for Medication 1';
+      valid = false;
+    }
     return valid;
   }
 
@@ -724,7 +792,7 @@
 
   function goToStep(step) {
     if (step === 2 && !validateStep1()) return;
-    if (step === 3 && currentStep === 2) { /* no required fields on step 2 */ }
+    if (step === 3 && currentStep === 2 && !validateStep2()) return;
     showStep(step);
   }
 
@@ -759,11 +827,13 @@
       medication_1_frequency: val('medication_1_frequency'),
       medication_1_dosage: val('medication_1_dosage'),
       medication_1_qty: val('medication_1_qty'),
+      medication_1_type: (() => { const r = document.querySelector('input[name="medication_1_type"]:checked'); return r ? r.value : ''; })(),
       medication_2_name: val('medication_2_name'),
       medication_2_icd10: val('medication_2_icd10'),
       medication_2_frequency: val('medication_2_frequency'),
       medication_2_dosage: val('medication_2_dosage'),
       medication_2_qty: val('medication_2_qty'),
+      medication_2_type: (() => { const r = document.querySelector('input[name="medication_2_type"]:checked'); return r ? r.value : ''; })(),
       prescriber_name: val('prescriber_name'),
       prescriber_state: val('prescriber_state').toUpperCase(),
       prescriber_license: val('prescriber_license'),
@@ -784,7 +854,7 @@
     const data = collectFormData();
 
     try {
-      const res = await fetch('/api/enroll', {
+      const res = await fetch(`/api/enroll/${selectedProgram}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -809,6 +879,43 @@
       btn.disabled = false;
       btn.innerHTML = 'Submit &amp; Send PDF';
     }
+  }
+
+  function fillSampleData() {
+    // Step 1 — Patient Info
+    document.getElementById('patient_first_name').value     = 'Jane';
+    document.getElementById('patient_middle_initial').value = 'A';
+    document.getElementById('patient_last_name').value      = 'Doe';
+    document.getElementById('patient_ssn').value            = '123-45-6789';
+    document.getElementById('patient_dob_mm').value         = '01';
+    document.getElementById('patient_dob_dd').value         = '15';
+    document.getElementById('patient_dob_yyyy').value       = '1975';
+    document.getElementById('patient_address').value        = '123 Main St';
+    document.getElementById('patient_city').value           = 'Jackson';
+    document.getElementById('patient_state').value          = 'MS';
+    document.getElementById('patient_zip').value            = '39232';
+    document.getElementById('patient_phone_1').value        = '601';
+    document.getElementById('patient_phone_2').value        = '555';
+    document.getElementById('patient_phone_3').value        = '0100';
+    document.getElementById('patient_email').value          = 'test@example.com';
+    document.getElementById('annual_household_income').value = '$35,000';
+    const radio = document.querySelector('input[name="household_income"][value="3"]');
+    if (radio) radio.checked = true;
+
+    // Step 2 — Medication
+    document.querySelector('input[name="medication_1_type"][value="Vials"]').checked = true;
+    document.getElementById('medication_1_name').value      = 'Dupixent';
+    document.getElementById('medication_1_icd10').value     = 'L20.9';
+    document.getElementById('medication_1_frequency').value = 'Every 2 weeks';
+    document.getElementById('medication_1_dosage').value    = '300mg';
+    document.getElementById('medication_1_qty').value       = '2';
+
+    // Step 3 — Prescriber + recipient
+    document.getElementById('prescriber_name').value    = 'Dr. John Smith';
+    document.getElementById('prescriber_state').value   = 'MS';
+    document.getElementById('prescriber_license').value = 'T-000';
+    document.getElementById('prescriber_npi').value     = '1234567890';
+    document.getElementById('recipient_email').value    = 'test@example.com';
   }
 
   function resetForm() {

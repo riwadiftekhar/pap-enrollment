@@ -30,6 +30,7 @@ class EnrollmentData(BaseModel):
     medication_1_frequency: Optional[str] = ""
     medication_1_dosage: Optional[str] = ""
     medication_1_qty: Optional[str] = ""
+    medication_1_type: Optional[str] = ""   # "Vials", "Pens", or "N/a"
 
     # Medication 2
     medication_2_name: Optional[str] = ""
@@ -37,6 +38,7 @@ class EnrollmentData(BaseModel):
     medication_2_frequency: Optional[str] = ""
     medication_2_dosage: Optional[str] = ""
     medication_2_qty: Optional[str] = ""
+    medication_2_type: Optional[str] = ""   # "Vials", "Pens", or "N/a"
 
     # Prescriber
     prescriber_name: str

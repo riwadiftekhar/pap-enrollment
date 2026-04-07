@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from backend.models.enrollment import EnrollmentData
-from backend.services.pdf_filler import fill_sanofi_pdf
+from backend.programs import PROGRAMS
 from backend.services.email_sender import send_pdf
 
 router = APIRouter()
@@ -11,10 +11,22 @@ def health():
     return {"status": "ok"}
 
 
-@router.post("/enroll")
-def enroll(data: EnrollmentData):
+@router.get("/programs")
+def list_programs():
+    """Return the list of available enrollment programs for the frontend selector."""
+    return [
+        {"id": program_id, "name": module.DISPLAY_NAME, "subtitle": module.SUBTITLE}
+        for program_id, module in PROGRAMS.items()
+    ]
+
+
+@router.post("/enroll/{program}")
+def enroll(program: str, data: EnrollmentData):
+    if program not in PROGRAMS:
+        raise HTTPException(status_code=404, detail=f"Unknown program: {program}")
+
     try:
-        pdf_bytes = fill_sanofi_pdf(data.model_dump())
+        pdf_bytes = PROGRAMS[program].fill_pdf(data.model_dump())
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
 
@@ -31,5 +43,5 @@ def enroll(data: EnrollmentData):
 
     return {
         "status": "success",
-        "message": f"Enrollment PDF sent to {data.patient_email}",
+        "message": f"Enrollment PDF sent to {data.recipient_email}",
     }
