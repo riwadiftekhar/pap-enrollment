@@ -7,24 +7,31 @@ from email.mime.application import MIMEApplication
 from backend.config import settings
 
 
-def send_pdf(recipient: str, pdf_bytes: bytes, patient_name: str) -> None:
+def send_pdf(
+    recipient: str,
+    pdf_bytes: bytes,
+    patient_name: str,
+    program_display_name: str = "PAP",
+    pdf_filename: str = "PAP_Enrollment.pdf",
+    email_body: str = None,
+) -> None:
     msg = MIMEMultipart("mixed")
     msg["From"] = settings.smtp_user
     msg["To"] = recipient
-    msg["Subject"] = f"Sanofi PAP Enrollment – {patient_name}"
+    msg["Subject"] = f"{program_display_name} Enrollment \u2013 {patient_name}"
 
-    body = MIMEText(
-        f"Please find attached the completed Sanofi Patient Connection enrollment form for {patient_name}.\n\n"
-        "Review the document, obtain required signatures, and submit to:\n"
-        "Sanofi Patient Connection\n"
-        "P.O. Box 222138 · Charlotte, NC · 28222-2138\n"
-        "Phone: 1-888-847-4877 | Fax: 1-888-847-1797",
-        "plain",
-    )
-    msg.attach(body)
+    if email_body is None:
+        email_body = (
+            f"Please find attached the completed {program_display_name} enrollment form "
+            f"for {patient_name}.\n\n"
+            "Review the document, obtain the required patient and prescriber signatures, "
+            "then submit it to the program per the instructions on the form."
+        )
 
-    attachment = MIMEApplication(pdf_bytes, Name="Sanofi_PAP_Enrollment.pdf")
-    attachment["Content-Disposition"] = 'attachment; filename="Sanofi_PAP_Enrollment.pdf"'
+    msg.attach(MIMEText(email_body, "plain"))
+
+    attachment = MIMEApplication(pdf_bytes, Name=pdf_filename)
+    attachment["Content-Disposition"] = f'attachment; filename="{pdf_filename}"'
     msg.attach(attachment)
 
     context = ssl.create_default_context()

@@ -11,6 +11,7 @@ from backend.services.pdf_utils import fill_pdf_form
 
 DISPLAY_NAME = "Sanofi"
 SUBTITLE = "Patient Connection®"
+PDF_FILENAME = "Sanofi_PAP_Enrollment.pdf"
 
 _TEMPLATE = Path(__file__).parent.parent / "assets" / "sanofi_pap_template.pdf"
 

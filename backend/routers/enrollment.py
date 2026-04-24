@@ -31,12 +31,15 @@ def enroll(program: str, data: EnrollmentData):
         raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
 
     patient_name = f"{data.patient_first_name} {data.patient_last_name}"
+    program_module = PROGRAMS[program]
 
     try:
         send_pdf(
             recipient=data.recipient_email,
             pdf_bytes=pdf_bytes,
             patient_name=patient_name,
+            program_display_name=program_module.DISPLAY_NAME,
+            pdf_filename=getattr(program_module, "PDF_FILENAME", f"{program}_enrollment.pdf"),
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Email sending failed: {str(e)}")

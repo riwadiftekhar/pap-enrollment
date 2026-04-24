@@ -2,6 +2,7 @@ from pathlib import Path
 from io import BytesIO
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import NameObject
+import pdfrw
 
 
 def fill_pdf_form(template_path: Path, fields: dict, radio_fields: dict = None) -> bytes:
@@ -67,3 +68,69 @@ def _fill_radio_fields(writer: PdfWriter, radio_fields: dict):
                 annot.update({NameObject("/AS"): NameObject(value)})
             else:
                 annot.update({NameObject("/AS"): NameObject("/Off")})
+
+
+def fill_pdf_form_pdfrw(template_path: Path, fields: dict, radio_fields: dict = None) -> bytes:
+    """
+    Fill an AcroForm PDF using pdfrw — used for PDFs with generic field names
+    (e.g. 'Text Field 158') where pypdf's clone approach fails to persist values.
+    """
+    template = pdfrw.PdfReader(str(template_path))
+    template.Root.AcroForm.update(pdfrw.PdfDict(NeedAppearances=pdfrw.PdfObject('true')))
+
+    # Fill text fields via page annotations
+    for page in template.pages:
+        if page['/Annots'] is None:
+            continue
+        for annotation in page['/Annots']:
+            if annotation['/Subtype'] != '/Widget':
+                continue
+            field_name = annotation['/T']
+            if field_name is None:
+                continue
+            clean_name = field_name.strip('()')
+            if clean_name in fields and fields[clean_name]:
+                annotation.update(pdfrw.PdfDict(V=fields[clean_name]))
+
+    # Fill radio button groups via AcroForm fields tree
+    if radio_fields:
+        _fill_radio_fields_pdfrw(template, radio_fields)
+
+    buf = BytesIO()
+    pdfrw.PdfWriter().write(buf, template)
+    return buf.getvalue()
+
+
+def _fill_radio_fields_pdfrw(template, radio_fields: dict):
+    """Set radio button groups using pdfrw field tree traversal."""
+    acroform = template.Root.AcroForm
+    if acroform is None or acroform.Fields is None:
+        return
+
+    def walk(fields_list):
+        for field in fields_list:
+            name = field['/T']
+            if name:
+                clean = name.strip('()')
+                if clean in radio_fields:
+                    value = radio_fields[clean]          # e.g. "/Choice1"
+                    pdf_val = pdfrw.PdfName(value.lstrip('/'))
+                    field.update(pdfrw.PdfDict(V=pdf_val))
+                    # Update each kid widget's /AS
+                    kids = field['/Kids']
+                    if kids:
+                        for kid in kids:
+                            ap = kid['/AP']
+                            n_dict = ap['/N'] if ap else None
+                            if n_dict and hasattr(n_dict, 'keys'):
+                                key = pdfrw.PdfName(value.lstrip('/'))
+                                if key in n_dict:
+                                    kid.update(pdfrw.PdfDict(AS=key))
+                                else:
+                                    kid.update(pdfrw.PdfDict(AS=pdfrw.PdfName('Off')))
+            # Recurse into kids that are field groups (have /T themselves)
+            kids = field['/Kids']
+            if kids:
+                walk(kids)
+
+    walk(acroform.Fields)
