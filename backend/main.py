@@ -9,8 +9,10 @@ app = FastAPI(title="PAP Enrollment API")
 app.include_router(router, prefix="/api")
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
+STATIC_DIR = FRONTEND_DIR / "static"
 
-app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR / "static")), name="static")
+if STATIC_DIR.exists():
+    app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 @app.get("/")

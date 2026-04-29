@@ -3,6 +3,8 @@ from io import BytesIO
 from pypdf import PdfReader, PdfWriter
 from pypdf.generic import NameObject
 import pdfrw
+from pdfrw.objects.pdfstring import PdfString
+from reportlab.pdfgen import canvas
 
 
 def fill_pdf_form(template_path: Path, fields: dict, radio_fields: dict = None) -> bytes:
@@ -77,9 +79,11 @@ def fill_pdf_form_pdfrw(template_path: Path, fields: dict, radio_fields: dict = 
     """
     template = pdfrw.PdfReader(str(template_path))
     template.Root.AcroForm.update(pdfrw.PdfDict(NeedAppearances=pdfrw.PdfObject('true')))
+    visible_fields = []
+    filled_widgets = []
 
     # Fill text fields via page annotations
-    for page in template.pages:
+    for page_index, page in enumerate(template.pages):
         if page['/Annots'] is None:
             continue
         for annotation in page['/Annots']:
@@ -90,15 +94,76 @@ def fill_pdf_form_pdfrw(template_path: Path, fields: dict, radio_fields: dict = 
                 continue
             clean_name = field_name.strip('()')
             if clean_name in fields and fields[clean_name]:
-                annotation.update(pdfrw.PdfDict(V=fields[clean_name]))
+                value = str(fields[clean_name])
+                annotation.update(pdfrw.PdfDict(V=PdfString.encode(value)))
+                visible_fields.append((page_index, annotation['/Rect'], value))
+                filled_widgets.append((page_index, annotation))
 
     # Fill radio button groups via AcroForm fields tree
     if radio_fields:
         _fill_radio_fields_pdfrw(template, radio_fields)
 
+    _draw_visible_text_values(template, visible_fields)
+    _remove_filled_text_widgets(template, filled_widgets)
+
     buf = BytesIO()
     pdfrw.PdfWriter().write(buf, template)
     return buf.getvalue()
+
+
+def _remove_filled_text_widgets(template, filled_widgets: list):
+    """Remove text widgets after drawing values so blank appearances cannot hide them."""
+    if not filled_widgets:
+        return
+
+    widgets_by_page = {}
+    for page_index, annotation in filled_widgets:
+        widgets_by_page.setdefault(page_index, set()).add(id(annotation))
+
+    for page_index, page in enumerate(template.pages):
+        if page.Annots is None or page_index not in widgets_by_page:
+            continue
+        page.Annots = [
+            annotation
+            for annotation in page.Annots
+            if id(annotation) not in widgets_by_page[page_index]
+        ]
+
+
+def _draw_visible_text_values(template, visible_fields: list):
+    """Burn text values onto pages so browser PDF viewers show filled fields."""
+    if not visible_fields:
+        return
+
+    fields_by_page = {}
+    for page_index, rect, value in visible_fields:
+        fields_by_page.setdefault(page_index, []).append((rect, value))
+
+    overlay_buf = BytesIO()
+    pdf_canvas = canvas.Canvas(overlay_buf)
+
+    for page_index, page in enumerate(template.pages):
+        media_box = [float(v) for v in page.MediaBox]
+        width = media_box[2] - media_box[0]
+        height = media_box[3] - media_box[1]
+        pdf_canvas.setPageSize((width, height))
+        pdf_canvas.setFillColorRGB(0, 0, 0)
+
+        for rect, value in fields_by_page.get(page_index, []):
+            x1, y1, x2, y2 = [float(v) for v in rect]
+            field_height = y2 - y1
+            font_size = max(7, min(10, field_height - 4))
+            pdf_canvas.setFont("Helvetica", font_size)
+            pdf_canvas.drawString(x1 + 3, y1 + max(2, (field_height - font_size) / 2), value)
+
+        pdf_canvas.showPage()
+
+    pdf_canvas.save()
+    overlay_buf.seek(0)
+    overlay = pdfrw.PdfReader(fdata=overlay_buf.getvalue())
+
+    for page, overlay_page in zip(template.pages, overlay.pages):
+        pdfrw.PageMerge(page).add(overlay_page).render()
 
 
 def _fill_radio_fields_pdfrw(template, radio_fields: dict):

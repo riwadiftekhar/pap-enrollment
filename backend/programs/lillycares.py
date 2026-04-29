@@ -17,6 +17,14 @@ DISPLAY_NAME = "LillyCares"
 SUBTITLE = "Lilly Cares Foundation®"
 PDF_FILENAME = "LillyCares_PAP_Enrollment.pdf"
 
+OFFICE_CONTACT_NAME = "Katie McClendon"
+OFFICE_PHONE = "601-355-5161"
+OFFICE_FAX = "601-398-0601"
+OFFICE_ADDRESS = "2466 Flowood Dr"
+OFFICE_CITY = "Flowood"
+OFFICE_STATE = "MS"
+OFFICE_ZIP = "39232"
+
 _TEMPLATE = Path(__file__).parent.parent / "assets" / "lillycares_pap_template.pdf"
 
 
@@ -44,21 +52,26 @@ def _build_field_map(data: dict) -> dict:
     fields = {
         # --- Page 4: Patient Information ---
         "Text Field 158": data.get("patient_first_name", ""),
-        "Text Field 167": data.get("patient_last_name", ""),
-        "Text Field 165": patient_dob,
+        "Text Field 167": data.get("patient_middle_initial", ""),
+        "Text Field 165": data.get("patient_last_name", ""),
         "Text Field 164": data.get("patient_address", ""),
         "Text Field 159": data.get("patient_city", ""),
         "Text Field 168": data.get("patient_state", ""),
         "Text Field 166": data.get("patient_zip", ""),
-        "Text Field 163": patient_phone,
+        "Text Field 163": patient_dob,
+        "Text Field 169": patient_phone,
         "Text Field 160": data.get("lc_household_size", ""),
         "Text Field 170": data.get("lc_annual_household_income", "") or data.get("annual_household_income", ""),
 
         # --- Page 8: Prescription Request (top section only) ---
         "Text Field 181": patient_full_name,
         "Text Field 237": patient_dob,
-        "Text Field 182": date_today,
-        "Text Field 227": data.get("medication_requested", ""),
+        "Text Field 182": data.get("medication_requested", ""),
+        "Text Field 236": OFFICE_CONTACT_NAME,
+        "Text Field 234": OFFICE_PHONE,
+        "Text Field 233": OFFICE_FAX,
+        "Text Field 232": date_today,
+        "Text Field 227": data.get("lc_hcp_name_title", ""),
 
         # --- Page 9: Clinical & Prescriber ---
         "Text Field 194": patient_full_name,
@@ -78,6 +91,14 @@ def _build_field_map(data: dict) -> dict:
         "Text Field 200": data.get("lc_hcp_name_title", ""),
         "Text Field 201": data.get("lc_state_license", ""),
         "Text Field 204": data.get("lc_npi", ""),
+        "Text Field 203": OFFICE_ADDRESS,
+        "Text Field 209": OFFICE_CITY,
+        "Text Field 213": OFFICE_STATE,
+        "Text Field 214": OFFICE_ZIP,
+        "Text Field 215": OFFICE_PHONE,
+        "Text Field 216": OFFICE_FAX,
+        "Text Field 202": OFFICE_CONTACT_NAME,
+        "Text Field 205": OFFICE_PHONE,
     }
 
     return {k: v for k, v in fields.items() if v}
