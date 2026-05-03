@@ -72,7 +72,30 @@ def _fill_radio_fields(writer: PdfWriter, radio_fields: dict):
                 annot.update({NameObject("/AS"): NameObject("/Off")})
 
 
-def fill_pdf_form_pdfrw(template_path: Path, fields: dict, radio_fields: dict = None) -> bytes:
+def fill_checkboxes_pdfrw(template, checkbox_names: list) -> tuple:
+    """Check named checkbox fields. Returns (checked_rects, checkbox_widgets) for overlay drawing and removal."""
+    name_set = set(checkbox_names)
+    checked_rects = []
+    checkbox_widgets = []
+    for page_index, page in enumerate(template.pages):
+        if page['/Annots'] is None:
+            continue
+        for annot in page['/Annots']:
+            t = annot['/T']
+            if t and t.strip('()') in name_set:
+                annot.update(pdfrw.PdfDict(
+                    V=pdfrw.PdfName('Yes'),
+                    AS=pdfrw.PdfName('Yes'),
+                ))
+                rect = annot['/Rect']
+                if rect:
+                    checked_rects.append((page_index, rect))
+                    checkbox_widgets.append((page_index, annot))
+    return checked_rects, checkbox_widgets
+
+
+def fill_pdf_form_pdfrw(template_path: Path, fields: dict, radio_fields: dict = None,
+                        checkbox_names: list = None) -> bytes:
     """
     Fill an AcroForm PDF using pdfrw — used for PDFs with generic field names
     (e.g. 'Text Field 158') where pypdf's clone approach fails to persist values.
@@ -103,8 +126,15 @@ def fill_pdf_form_pdfrw(template_path: Path, fields: dict, radio_fields: dict = 
     if radio_fields:
         _fill_radio_fields_pdfrw(template, radio_fields)
 
+    # Check named checkboxes
+    checked_rects = []
+    checkbox_widgets = []
+    if checkbox_names:
+        checked_rects, checkbox_widgets = fill_checkboxes_pdfrw(template, checkbox_names)
+
     _draw_visible_text_values(template, visible_fields)
-    _remove_filled_text_widgets(template, filled_widgets)
+    _draw_checkboxes_overlay(template, checked_rects)
+    _remove_filled_text_widgets(template, filled_widgets + checkbox_widgets)
 
     buf = BytesIO()
     pdfrw.PdfWriter().write(buf, template)
@@ -152,7 +182,7 @@ def _draw_visible_text_values(template, visible_fields: list):
         for rect, value in fields_by_page.get(page_index, []):
             x1, y1, x2, y2 = [float(v) for v in rect]
             field_height = y2 - y1
-            font_size = max(7, min(10, field_height - 4))
+            font_size = max(6, min(8, field_height - 4))
             pdf_canvas.setFont("Helvetica", font_size)
             pdf_canvas.drawString(x1 + 3, y1 + max(2, (field_height - font_size) / 2), value)
 
@@ -162,6 +192,41 @@ def _draw_visible_text_values(template, visible_fields: list):
     overlay_buf.seek(0)
     overlay = pdfrw.PdfReader(fdata=overlay_buf.getvalue())
 
+    for page, overlay_page in zip(template.pages, overlay.pages):
+        pdfrw.PageMerge(page).add(overlay_page).render()
+
+
+def _draw_checkboxes_overlay(template, checked_rects: list):
+    """Burn an X into each checkbox rect via canvas overlay so it renders in all viewers."""
+    if not checked_rects:
+        return
+
+    rects_by_page = {}
+    for page_index, rect in checked_rects:
+        rects_by_page.setdefault(page_index, []).append(rect)
+
+    overlay_buf = BytesIO()
+    pdf_canvas = canvas.Canvas(overlay_buf)
+    pdf_canvas.setStrokeColorRGB(0, 0, 0)
+    pdf_canvas.setLineWidth(1.5)
+
+    for page_index, page in enumerate(template.pages):
+        media_box = [float(v) for v in page.MediaBox]
+        width  = media_box[2] - media_box[0]
+        height = media_box[3] - media_box[1]
+        pdf_canvas.setPageSize((width, height))
+
+        for rect in rects_by_page.get(page_index, []):
+            x1, y1, x2, y2 = [float(v) for v in rect]
+            pad = max(2, (x2 - x1) * 0.15)
+            pdf_canvas.line(x1 + pad, y1 + pad, x2 - pad, y2 - pad)
+            pdf_canvas.line(x2 - pad, y1 + pad, x1 + pad, y2 - pad)
+
+        pdf_canvas.showPage()
+
+    pdf_canvas.save()
+    overlay_buf.seek(0)
+    overlay = pdfrw.PdfReader(fdata=overlay_buf.getvalue())
     for page, overlay_page in zip(template.pages, overlay.pages):
         pdfrw.PageMerge(page).add(overlay_page).render()
 

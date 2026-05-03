@@ -62,3 +62,14 @@ class EnrollmentData(BaseModel):
     lc_hcp_name_title: Optional[str] = ""
     lc_state_license: Optional[str] = ""
     lc_npi: Optional[str] = ""
+
+    # BI Cares-specific fields
+    bi_sex: Optional[str] = ""
+    bi_household_size: Optional[str] = ""
+    bi_allergies: Optional[str] = ""
+    bi_current_medications: Optional[str] = ""
+    bi_health_conditions: Optional[str] = ""
+    bi_medication: Optional[str] = ""
+    bi_strength: Optional[str] = ""
+    bi_directions: Optional[str] = ""
+    bi_refills: Optional[str] = ""

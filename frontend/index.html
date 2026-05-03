@@ -197,6 +197,10 @@
       <div class="prog-name">LillyCares</div>
       <div class="prog-sub">Lilly Cares Foundation®</div>
     </div>
+    <div class="program-card" data-program="bicares" onclick="selectProgram(this)">
+      <div class="prog-name">BI Cares</div>
+      <div class="prog-sub">Boehringer Ingelheim Cares Foundation®</div>
+    </div>
   </div>
   <br>
   <button class="btn-start" onclick="startForm()">Begin Enrollment &rarr;</button>
@@ -555,6 +559,141 @@
     </div>
   </div>
 
+  <!-- BI Cares Step 2: Medication -->
+  <div class="form-card program-step" data-program="bicares" data-step="2" id="bi-step-2" style="display:none;">
+    <h2>Step 2 — Medication</h2>
+
+    <div class="field-row">
+      <div class="field-group full">
+        <label>Medication <span class="req">*</span></label>
+        <select id="bi_medication" onchange="toggleBIStrength()">
+          <option value="">— Select a medication —</option>
+          <option>Aptivus® Capsules</option>
+          <option>Atrovent® HFA</option>
+          <option>Combivent® Respimat®</option>
+          <option>Cyltezo®</option>
+          <option>Gilotrif®</option>
+          <option>Glyxambi®</option>
+          <option>Jardiance®</option>
+          <option>Jentadueto®</option>
+          <option>Jentadueto® XR</option>
+          <option>Ofev®</option>
+          <option>Spiriva® Respimat® 2.5mcg</option>
+          <option>Spiriva® Respimat® 1.25mcg</option>
+          <option>Stiolto® Respimat®</option>
+          <option>Striverdi® Respimat®</option>
+          <option>Synjardy®</option>
+          <option>Synjardy® XR</option>
+          <option>Tradjenta®</option>
+          <option>Trijardy® XR</option>
+        </select>
+        <span class="error-msg" id="err_bi_medication"></span>
+      </div>
+    </div>
+
+    <div class="field-row" id="bi-strength-row" style="display:none;">
+      <div class="field-group full">
+        <label>Strength</label>
+        <input type="text" id="bi_strength" placeholder="e.g. 10mg/5mg" />
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field-group full">
+        <label>Directions <span class="req">*</span> <span style="font-weight:normal;font-size:0.85em;color:#666;">(be concise, the box is small)</span></label>
+        <input type="text" id="bi_directions" placeholder="e.g. Take one tablet by mouth once daily" />
+        <span class="error-msg" id="err_bi_directions"></span>
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field-group">
+        <label>Refills <span class="req">*</span></label>
+        <div class="radio-group">
+          <label class="radio-label"><input type="radio" name="bi_refills" value="1" /> 1</label>
+          <label class="radio-label"><input type="radio" name="bi_refills" value="2" /> 2</label>
+          <label class="radio-label"><input type="radio" name="bi_refills" value="3" /> 3</label>
+        </div>
+        <span class="error-msg" id="err_bi_refills"></span>
+      </div>
+    </div>
+
+    <div class="form-nav">
+      <button class="btn btn-back" onclick="goToStep(1)">&larr; Back</button>
+      <button class="btn btn-next" onclick="goToStep(3)">Next &rarr;</button>
+    </div>
+  </div>
+
+  <!-- BI Cares Step 3: Clinical & Prescriber -->
+  <div class="form-card program-step" data-program="bicares" data-step="3" id="bi-step-3" style="display:none;">
+    <h2>Step 3 — Clinical &amp; Prescriber</h2>
+
+    <div class="field-row">
+      <div class="field-group">
+        <label>Sex</label>
+        <div class="radio-group">
+          <label class="radio-label"><input type="radio" name="bi_sex" value="Male" /> Male</label>
+          <label class="radio-label"><input type="radio" name="bi_sex" value="Female" /> Female</label>
+        </div>
+      </div>
+      <div class="field-group">
+        <label>Household Size</label>
+        <input type="text" id="bi_household_size" placeholder="e.g. 3" />
+      </div>
+      <div class="field-group">
+        <label>Annual Household Income</label>
+        <input type="text" id="bi_annual_household_income" placeholder="$0,000" />
+      </div>
+    </div>
+
+    <div class="field-row">
+      <div class="field-group full">
+        <label>Drug Allergies</label>
+        <input type="text" id="bi_allergies" placeholder="e.g. Penicillin, Sulfa, or NKDA" />
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field-group full">
+        <label>Current Medications</label>
+        <input type="text" id="bi_current_medications" placeholder="e.g. Metformin 500mg, Lisinopril 10mg" />
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field-group full">
+        <label>Health Conditions / Diagnosis</label>
+        <input type="text" id="bi_health_conditions" placeholder="e.g. Type 2 Diabetes, Hypertension" />
+      </div>
+    </div>
+
+    <hr class="section-sep" />
+    <div class="sub-heading">Prescriber</div>
+
+    <div class="field-row">
+      <div class="field-group">
+        <label>Prescriber Name <span class="req">*</span></label>
+        <input type="text" id="bi_prescriber_name" placeholder="Dr. Jane Smith, MD" />
+        <span class="error-msg" id="err_bi_prescriber_name"></span>
+      </div>
+      <div class="field-group">
+        <label>NPI #</label>
+        <input type="text" id="bi_npi" placeholder="10-digit NPI" maxlength="10" />
+      </div>
+    </div>
+
+    <hr class="section-sep" />
+    <div class="field-group full" style="margin-bottom:18px;">
+      <label>Send PDF To (Email) <span class="req">*</span></label>
+      <input type="text" id="bi_recipient_email" placeholder="student@clinic.com" />
+      <span class="error-msg" id="err_bi_recipient_email"></span>
+    </div>
+
+    <div id="bi-submit-error" class="global-error" style="display:none;"></div>
+    <div class="form-nav">
+      <button class="btn btn-back" onclick="goToStep(2)">&larr; Back</button>
+      <button class="btn btn-submit" id="bi-btn-submit" onclick="submitForm()">Submit &amp; Send PDF</button>
+    </div>
+  </div>
+
 </div><!-- /form-container -->
 
 <!-- Success screen -->
@@ -573,7 +712,7 @@
   let selectedProgram = 'sanofi';
   let currentStep = 1;
 
-  const STEP3_LABELS = { sanofi: 'Prescriber', lillycares: 'Clinical & Prescriber' };
+  const STEP3_LABELS = { sanofi: 'Prescriber', lillycares: 'Clinical & Prescriber', bicares: 'Clinical & Prescriber' };
 
   function selectProgram(el) {
     document.querySelectorAll('.program-card').forEach(c => c.classList.remove('selected'));
@@ -657,6 +796,12 @@
     if (selectedProgram === 'lillycares' && !val('medication_requested')) {
       setError('medication_requested', 'Required'); return false;
     }
+    if (selectedProgram === 'bicares') {
+      if (!val('bi_medication')) { setError('bi_medication', 'Required'); return false; }
+      if (!val('bi_directions')) { setError('bi_directions', 'Required'); return false; }
+      const refill = document.querySelector('input[name="bi_refills"]:checked');
+      if (!refill) { setError('bi_refills', 'Select refill count'); return false; }
+    }
     return true;
   }
 
@@ -666,10 +811,14 @@
       if (!val('prescriber_name')) { setError('prescriber_name', 'Required'); return false; }
       const r = val('sanofi_recipient_email');
       if (!r || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r)) { setError('sanofi_recipient_email', 'Valid email required'); return false; }
-    } else {
+    } else if (selectedProgram === 'lillycares') {
       if (!val('lc_hcp_name')) { setError('lc_hcp_name', 'Required'); return false; }
       const r = val('lc_recipient_email');
       if (!r || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r)) { setError('lc_recipient_email', 'Valid email required'); return false; }
+    } else if (selectedProgram === 'bicares') {
+      if (!val('bi_prescriber_name')) { setError('bi_prescriber_name', 'Required'); return false; }
+      const r = val('bi_recipient_email');
+      if (!r || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r)) { setError('bi_recipient_email', 'Valid email required'); return false; }
     }
     return true;
   }
@@ -680,6 +829,15 @@
     showStep(step);
   }
 
+  const BI_STRENGTH_MEDS = new Set([
+    'Cyltezo®','Gilotrif®','Glyxambi®','Jardiance®','Jentadueto®',
+    'Jentadueto® XR','Ofev®','Synjardy®','Synjardy® XR','Trijardy® XR'
+  ]);
+  function toggleBIStrength() {
+    const med = val('bi_medication');
+    document.getElementById('bi-strength-row').style.display = BI_STRENGTH_MEDS.has(med) ? '' : 'none';
+  }
+
   function toggleInsulinType() {
     const yes = document.querySelector('input[name="lc_prescribing_insulin"][value="Yes"]');
     document.getElementById('lc-insulin-type-section').style.display = yes && yes.checked ? 'block' : 'none';
@@ -687,7 +845,9 @@
 
   function collectFormData() {
     const radio = (name) => { const r = document.querySelector(`input[name="${name}"]:checked`); return r ? r.value : ''; };
-    const recipientEmail = selectedProgram === 'lillycares' ? val('lc_recipient_email') : val('sanofi_recipient_email');
+    const recipientEmail = selectedProgram === 'lillycares' ? val('lc_recipient_email')
+                        : selectedProgram === 'bicares'    ? val('bi_recipient_email')
+                        : val('sanofi_recipient_email');
 
     return {
       patient_first_name: val('patient_first_name'), patient_middle_initial: val('patient_middle_initial'),
@@ -720,13 +880,30 @@
       lc_refills: radio('lc_refills'),
       lc_hcp_name_title: val('lc_hcp_name'),
       lc_state_license: val('lc_state_license'), lc_npi: val('lc_npi'),
+      // BI Cares
+      bi_sex: radio('bi_sex'),
+      bi_household_size: val('bi_household_size'),
+      annual_household_income: selectedProgram === 'bicares' ? val('bi_annual_household_income') : val('annual_household_income'),
+      bi_allergies: val('bi_allergies'),
+      bi_current_medications: val('bi_current_medications'),
+      bi_health_conditions: val('bi_health_conditions'),
+      bi_medication: val('bi_medication'),
+      bi_strength: val('bi_strength'),
+      bi_directions: val('bi_directions'),
+      bi_refills: radio('bi_refills'),
+      prescriber_name: selectedProgram === 'bicares' ? val('bi_prescriber_name') : val('prescriber_name'),
+      prescriber_npi:  selectedProgram === 'bicares' ? val('bi_npi')             : val('prescriber_npi'),
     };
   }
 
   async function submitForm() {
     if (!validateStep3()) return;
-    const btnId    = selectedProgram === 'lillycares' ? 'lc-btn-submit'   : 'sanofi-btn-submit';
-    const errDivId = selectedProgram === 'lillycares' ? 'lc-submit-error' : 'sanofi-submit-error';
+    const btnId    = selectedProgram === 'lillycares' ? 'lc-btn-submit'
+                   : selectedProgram === 'bicares'    ? 'bi-btn-submit'
+                   : 'sanofi-btn-submit';
+    const errDivId = selectedProgram === 'lillycares' ? 'lc-submit-error'
+                   : selectedProgram === 'bicares'    ? 'bi-submit-error'
+                   : 'sanofi-submit-error';
     const btn = document.getElementById(btnId);
     const errDiv = document.getElementById(errDivId);
     errDiv.style.display = 'none';
@@ -783,6 +960,40 @@
       document.getElementById('prescriber_license').value  = 'T-000';
       document.getElementById('prescriber_npi').value      = '1234567890';
       document.getElementById('sanofi_recipient_email').value = 'student@jfchealth.org';
+    } else if (selectedProgram === 'bicares') {
+      document.getElementById('patient_first_name').value    = 'Mary';
+      document.getElementById('patient_middle_initial').value = 'C';
+      document.getElementById('patient_last_name').value     = 'Johnson';
+      document.getElementById('patient_ssn').value           = '1234';
+      document.getElementById('patient_dob_mm').value        = '03';
+      document.getElementById('patient_dob_dd').value        = '10';
+      document.getElementById('patient_dob_yyyy').value      = '1965';
+      document.getElementById('patient_address').value       = '101 Elm Street';
+      document.getElementById('patient_city').value          = 'Brandon';
+      document.getElementById('patient_state').value         = 'MS';
+      document.getElementById('patient_zip').value           = '39042';
+      document.getElementById('patient_phone_1').value       = '601';
+      document.getElementById('patient_phone_2').value       = '555';
+      document.getElementById('patient_phone_3').value       = '0301';
+      document.getElementById('patient_email').value         = 'maryjohnson@example.com';
+      // Step 2
+      const biMed = document.getElementById('bi_medication');
+      if (biMed) { biMed.value = 'Jardiance®'; toggleBIStrength(); }
+      document.getElementById('bi_strength').value           = '10mg';
+      document.getElementById('bi_directions').value         = 'Take one tablet by mouth once daily';
+      const biRef = document.querySelector('input[name="bi_refills"][value="3"]');
+      if (biRef) biRef.checked = true;
+      // Step 3
+      const biSex = document.querySelector('input[name="bi_sex"][value="Female"]');
+      if (biSex) biSex.checked = true;
+      document.getElementById('bi_household_size').value     = '2';
+      document.getElementById('bi_annual_household_income').value = '$38,000';
+      document.getElementById('bi_allergies').value          = 'NKDA';
+      document.getElementById('bi_current_medications').value = 'Lisinopril 10mg, Atorvastatin 20mg';
+      document.getElementById('bi_health_conditions').value  = 'Type 2 Diabetes, Hypertension';
+      document.getElementById('bi_prescriber_name').value    = 'Dr. John Smith, MD';
+      document.getElementById('bi_npi').value                = '1234567890';
+      document.getElementById('bi_recipient_email').value    = 'student@jfchealth.org';
     } else {
       document.getElementById('patient_first_name').value  = 'John';
       document.getElementById('patient_middle_initial').value = 'B';
